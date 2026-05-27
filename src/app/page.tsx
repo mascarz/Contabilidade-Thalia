@@ -133,23 +133,24 @@ export default function DashboardPage() {
       />
 
       {/* Gráfico Otimizado */}
-      <div className="bg-white p-5 rounded-[2.5rem] border border-border shadow-sm">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-black tracking-tight">Fluxo de Caixa</h2>
-          <div className="flex gap-2">
-            <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-primary" />
-              <span className="text-[10px] font-bold text-muted-foreground uppercase">Lucro</span>
-            </div>
+      <div className="bg-white p-6 rounded-[2.5rem] border border-border shadow-sm">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h2 className="text-lg font-black tracking-tight text-gray-900">Fluxo de Caixa</h2>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Ganhos vs Gastos</p>
+          </div>
+          <div className="flex items-center gap-1.5 bg-orange-50 px-3 py-1 rounded-full">
+            <div className="w-2 h-2 rounded-full bg-primary" />
+            <span className="text-[10px] font-black text-primary uppercase">Lucro</span>
           </div>
         </div>
-        <div className="h-[250px] w-full">
+        <div className="h-[280px] w-full">
           <FinancialChart data={filteredData.chartData} />
         </div>
       </div>
 
       {/* Ações Rápidas Mobile */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 pb-4">
         <button className="flex flex-col items-center justify-center gap-3 bg-white p-6 rounded-[2rem] border border-border shadow-sm active:scale-95 transition-transform">
           <div className="p-3 bg-orange-100 text-primary rounded-2xl">
             <Scissors size={24} />
