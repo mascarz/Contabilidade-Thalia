@@ -18,6 +18,12 @@ import { format, differenceInDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
+import { Client } from '@/types'
+
+interface ClientToMessage extends Client {
+  daysSinceLastService: number
+  type: number
+}
 
 export default function MessagesPage() {
   const { data, updateMessageConfig } = useApp()
@@ -41,7 +47,7 @@ export default function MessagesPage() {
     }).filter(c => c.type > 0).sort((a, b) => b.daysSinceLastService - a.daysSinceLastService)
   }, [data.clients, data.messageConfigs])
 
-  const sendMessage = (client: any) => {
+  const sendMessage = (client: ClientToMessage) => {
     const config = data.messageConfigs.find(c => c.days === client.type)
     if (!config) return
 

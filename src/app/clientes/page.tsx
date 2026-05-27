@@ -18,12 +18,13 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn, formatCurrency } from '@/lib/utils'
+import { Client } from '@/types'
 
 export default function ClientsPage() {
   const { data, addClient, updateClient, deleteClient } = useApp()
   const [searchTerm, setSearchTerm] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingClient, setEditingClient] = useState<any>(null)
+  const [editingClient, setEditingClient] = useState<Client | null>(null)
   
   // Form state
   const [formData, setFormData] = useState({
@@ -39,7 +40,7 @@ export default function ClientsPage() {
     client.phone.includes(searchTerm)
   )
 
-  const handleOpenModal = (client = null) => {
+  const handleOpenModal = (client: Client | null = null) => {
     if (client) {
       setEditingClient(client)
       setFormData({
