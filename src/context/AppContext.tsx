@@ -1,7 +1,8 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
-import { AppData, Client, Transaction, Fiado, MessageConfig } from '@/types'
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { AppData, Client, Transaction, Fiado, MessageConfig, RecurringExpense } from '@/types'
+import { isSameMonth, parseISO, setDate, format } from 'date-fns'
 
 type AppContextType = {
   data: AppData
@@ -14,7 +15,13 @@ type AppContextType = {
   addFiado: (fiado: Omit<Fiado, 'id'>) => void
   updateFiado: (id: string, fiado: Partial<Fiado>) => void
   deleteFiado: (id: string) => void
+  addRecurringExpense: (expense: Omit<RecurringExpense, 'id' | 'active'>) => void
+  updateRecurringExpense: (id: string, updates: Partial<RecurringExpense>) => void
+  deleteRecurringExpense: (id: string) => void
   updateMessageConfig: (days: number, config: Partial<MessageConfig>) => void
+  updateApiConfig: (config: ApiConfig) => void
+  sendMessageViaApi: (phone: string, message: string) => Promise<boolean>
+  toggleReconciliation: (transactionId: string) => void
   isLoading: boolean
 }
 
@@ -24,6 +31,7 @@ const INITIAL_DATA: AppData = {
   clients: [],
   transactions: [],
   fiados: [],
+  recurringExpenses: [],
   messageConfigs: [
     { days: 7, enabled: true, template: 'Olá [Nome], já faz 7 dias desde seu último atendimento no Studio Thalia Abdo 💕 Agende novamente seu horário.' },
     { days: 14, enabled: true, template: 'Olá [Nome], saudades! Já faz 14 dias que você não vem ao Studio Thalia Abdo. Vamos agendar um horário?' },
@@ -52,6 +60,46 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('studio_thalia_data', JSON.stringify(data))
     }
   }, [data, isLoading])
+
+  const checkRecurringExpenses = useCallback(() => {
+    const today = new Date()
+    const newTransactions: Transaction[] = []
+    const updatedRecurring = data.recurringExpenses.map(expense => {
+      if (!expense.active) return expense
+
+      const lastGenerated = expense.lastGenerated ? parseISO(expense.lastGenerated) : null
+      const alreadyGeneratedThisMonth = lastGenerated && isSameMonth(lastGenerated, today)
+
+      if (!alreadyGeneratedThisMonth && today.getDate() >= expense.dayOfMonth) {
+        const transactionDate = setDate(today, expense.dayOfMonth)
+        newTransactions.push({
+          id: crypto.randomUUID(),
+          type: 'expense',
+          description: `[RECORRENTE] ${expense.description}`,
+          amount: expense.amount,
+          date: transactionDate.toISOString(),
+          category: expense.category,
+          reconciled: false
+        })
+        return { ...expense, lastGenerated: today.toISOString() }
+      }
+      return expense
+    })
+
+    if (newTransactions.length > 0) {
+      setData(prev => ({
+        ...prev,
+        transactions: [...newTransactions, ...prev.transactions],
+        recurringExpenses: updatedRecurring
+      }))
+    }
+  }, [data.recurringExpenses])
+
+  useEffect(() => {
+    if (!isLoading) {
+      checkRecurringExpenses()
+    }
+  }, [isLoading, checkRecurringExpenses])
 
   const addClient = (client: Omit<Client, 'id' | 'createdAt'>) => {
     const newClient: Client = {
@@ -120,10 +168,74 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }))
   }
 
+  const addRecurringExpense = (expense: Omit<RecurringExpense, 'id' | 'active'>) => {
+    const newExpense: RecurringExpense = {
+      ...expense,
+      id: crypto.randomUUID(),
+      active: true,
+    }
+    setData(prev => ({ ...prev, recurringExpenses: [newExpense, ...prev.recurringExpenses] }))
+  }
+
+  const updateRecurringExpense = (id: string, updates: Partial<RecurringExpense>) => {
+    setData(prev => ({
+      ...prev,
+      recurringExpenses: prev.recurringExpenses.map(e => e.id === id ? { ...e, ...updates } : e)
+    }))
+  }
+
+  const deleteRecurringExpense = (id: string) => {
+    setData(prev => ({
+      ...prev,
+      recurringExpenses: prev.recurringExpenses.filter(e => e.id !== id)
+    }))
+  }
+
   const updateMessageConfig = (days: number, updates: Partial<MessageConfig>) => {
     setData(prev => ({
       ...prev,
       messageConfigs: prev.messageConfigs.map(m => m.days === days ? { ...m, ...updates } : m)
+    }))
+  }
+
+  const updateApiConfig = (apiConfig: ApiConfig) => {
+    setData(prev => ({ ...prev, apiConfig }))
+  }
+
+  const sendMessageViaApi = async (phone: string, message: string) => {
+    if (!data.apiConfig?.baseUrl) {
+      console.error('API Base URL not configured')
+      return false
+    }
+
+    const cleanPhone = phone.replace(/\D/g, '')
+    // Exemplo de integração genérica (estilo Evolution API ou similar)
+    try {
+      const response = await fetch(`${data.apiConfig.baseUrl}/message/sendText`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': data.apiConfig.token || ''
+        },
+        body: JSON.stringify({
+          number: `55${cleanPhone}`,
+          text: message,
+          // Adicione outros campos conforme necessário pela API do usuário
+        })
+      })
+      return response.ok
+    } catch (error) {
+      console.error('Error sending message via API:', error)
+      return false
+    }
+  }
+
+  const toggleReconciliation = (transactionId: string) => {
+    setData(prev => ({
+      ...prev,
+      transactions: prev.transactions.map(t => 
+        t.id === transactionId ? { ...t, reconciled: !t.reconciled } : t
+      )
     }))
   }
 
@@ -139,8 +251,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addFiado,
       updateFiado,
       deleteFiado,
-      updateMessageConfig,
-      isLoading
+      addRecurringExpense,
+        updateRecurringExpense,
+        deleteRecurringExpense,
+        updateMessageConfig,
+        updateApiConfig,
+        sendMessageViaApi,
+        toggleReconciliation,
+        isLoading
     }}>
       {children}
     </AppContext.Provider>

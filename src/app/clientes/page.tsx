@@ -12,19 +12,25 @@ import {
   X,
   Calendar,
   DollarSign,
-  User
+  User,
+  History,
+  TrendingUp,
+  TrendingDown,
+  Clock
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn, formatCurrency } from '@/lib/utils'
-import { Client } from '@/types'
+import { Client, Transaction, Fiado } from '@/types'
 
 export default function ClientsPage() {
   const { data, addClient, updateClient, deleteClient } = useApp()
   const [searchTerm, setSearchTerm] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   
   // Form state
   const [formData, setFormData] = useState({
@@ -39,6 +45,11 @@ export default function ClientsPage() {
     client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     client.phone.includes(searchTerm)
   )
+
+  const clientHistory = selectedClient ? {
+    transactions: data.transactions.filter(t => t.clientId === selectedClient.id || t.description.toLowerCase().includes(selectedClient.name.toLowerCase())),
+    fiados: data.fiados.filter(f => f.clientId === selectedClient.id || f.clientName.toLowerCase() === selectedClient.name.toLowerCase())
+  } : { transactions: [], fiados: [] }
 
   const handleOpenModal = (client: Client | null = null) => {
     if (client) {
@@ -132,6 +143,16 @@ export default function ClientsPage() {
                   </div>
                 </div>
                 <div className="flex gap-2">
+                  <button 
+                    onClick={() => {
+                      setSelectedClient(client)
+                      setIsHistoryModalOpen(true)
+                    }}
+                    className="w-10 h-10 flex items-center justify-center text-blue-500 bg-blue-50 rounded-xl"
+                    title="Histórico"
+                  >
+                    <History size={16} />
+                  </button>
                   <button 
                     onClick={() => handleOpenModal(client)}
                     className="w-10 h-10 flex items-center justify-center text-muted-foreground bg-gray-100 rounded-xl"
@@ -285,6 +306,112 @@ export default function ClientsPage() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal IOS Style - Histórico do Cliente */}
+      <AnimatePresence>
+        {isHistoryModalOpen && selectedClient && (
+          <div className="fixed inset-0 z-[100] flex items-end justify-center">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsHistoryModalOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="relative w-full bg-white rounded-t-[3rem] p-6 pb-12 shadow-2xl max-w-lg mx-auto max-h-[90vh] overflow-y-auto"
+            >
+              <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-8" />
+              
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="text-xl font-black text-gray-900">Histórico</h2>
+                  <p className="text-sm font-bold text-muted-foreground">{selectedClient.name}</p>
+                </div>
+                <button 
+                  onClick={() => setIsHistoryModalOpen(false)}
+                  className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-full text-gray-500"
+                >
+                  <X size={20} strokeWidth={3} />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Resumo do Cliente */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-blue-50 p-4 rounded-3xl border border-blue-100">
+                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Total Gasto</p>
+                    <p className="text-lg font-black text-blue-700">
+                      {formatCurrency(clientHistory.transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0))}
+                    </p>
+                  </div>
+                  <div className="bg-orange-50 p-4 rounded-3xl border border-orange-100">
+                    <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-1">Fiados Pendentes</p>
+                    <p className="text-lg font-black text-orange-700">
+                      {formatCurrency(clientHistory.fiados.filter(f => f.status === 'pending').reduce((acc, f) => acc + f.amount, 0))}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Lista de Atividades */}
+                <div className="space-y-4">
+                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground ml-2">Atividades Recentes</h3>
+                  
+                  {[...clientHistory.transactions, ...clientHistory.fiados]
+                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                    .map((item, idx) => {
+                      const isTransaction = 'type' in item;
+                      return (
+                        <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "w-10 h-10 rounded-xl flex items-center justify-center",
+                              isTransaction 
+                                ? (item.type === 'income' ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600")
+                                : "bg-orange-100 text-orange-600"
+                            )}>
+                              {isTransaction 
+                                ? (item.type === 'income' ? <TrendingUp size={18} /> : <TrendingDown size={18} />)
+                                : <Clock size={18} />
+                              }
+                            </div>
+                            <div>
+                              <p className="text-sm font-black text-gray-900 leading-tight">
+                                {isTransaction ? item.description : `Fiado: ${item.service}`}
+                              </p>
+                              <p className="text-[10px] font-bold text-muted-foreground uppercase mt-0.5">
+                                {format(new Date(item.date), "dd 'de' MMMM", { locale: ptBR })}
+                              </p>
+                            </div>
+                          </div>
+                          <p className={cn(
+                            "text-sm font-black",
+                            isTransaction 
+                              ? (item.type === 'income' ? "text-green-600" : "text-red-600")
+                              : "text-orange-600"
+                          )}>
+                            {isTransaction && item.type === 'income' ? '+' : '-'} {formatCurrency(item.amount)}
+                          </p>
+                        </div>
+                      );
+                    })
+                  }
+
+                  {clientHistory.transactions.length === 0 && clientHistory.fiados.length === 0 && (
+                    <div className="text-center py-8">
+                      <p className="text-sm font-bold text-muted-foreground">Nenhuma atividade registrada.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </motion.div>
           </div>
         )}

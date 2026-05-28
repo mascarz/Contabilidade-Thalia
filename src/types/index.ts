@@ -18,6 +18,17 @@ export type Transaction = {
   clientId?: string
   paymentMethod?: string
   observations?: string
+  reconciled?: boolean
+}
+
+export type RecurringExpense = {
+  id: string
+  description: string
+  amount: number
+  dayOfMonth: number
+  category: string
+  active: boolean
+  lastGenerated?: string // ISO date of last time it was generated
 }
 
 export type Fiado = {
@@ -37,9 +48,17 @@ export type MessageConfig = {
   template: string
 }
 
+export type ApiConfig = {
+  baseUrl: string
+  token: string
+  instance?: string
+}
+
 export type AppData = {
   clients: Client[]
   transactions: Transaction[]
   fiados: Fiado[]
   messageConfigs: MessageConfig[]
+  recurringExpenses: RecurringExpense[]
+  apiConfig?: ApiConfig
 }
