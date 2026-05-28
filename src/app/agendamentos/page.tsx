@@ -25,6 +25,7 @@ export default function AgendamentosPage() {
     return data.appointments.filter(a => 
       a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       a.service.toLowerCase().includes(searchTerm.toLowerCase())
+    )
   }, [data.appointments, searchTerm])
 
   const handleSubmit = (e: React.FormEvent) => {
