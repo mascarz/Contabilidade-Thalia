@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { AppData, Client, Transaction, Fiado, MessageConfig, RecurringExpense, ApiConfig } from '@/types'
 import { isSameMonth, parseISO, setDate, format } from 'date-fns'
+import { generateId } from '@/lib/utils'
 
 type AppContextType = {
   data: AppData
@@ -47,7 +48,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const saved = localStorage.getItem('studio_thalia_data')
     if (saved) {
       try {
-        setData(JSON.parse(saved))
+        const parsed = JSON.parse(saved)
+        setData({
+          ...INITIAL_DATA,
+          ...parsed,
+          // Garante que campos de array existam mesmo em dados antigos
+          clients: parsed.clients || [],
+          transactions: parsed.transactions || [],
+          fiados: parsed.fiados || [],
+          recurringExpenses: parsed.recurringExpenses || [],
+          messageConfigs: parsed.messageConfigs || INITIAL_DATA.messageConfigs
+        })
       } catch (e) {
         console.error('Failed to parse saved data', e)
       }
@@ -64,7 +75,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const checkRecurringExpenses = useCallback(() => {
     const today = new Date()
     const newTransactions: Transaction[] = []
-    const updatedRecurring = data.recurringExpenses.map(expense => {
+    const expenses = data.recurringExpenses || []
+    
+    const updatedRecurring = expenses.map(expense => {
       if (!expense.active) return expense
 
       const lastGenerated = expense.lastGenerated ? parseISO(expense.lastGenerated) : null
@@ -73,7 +86,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!alreadyGeneratedThisMonth && today.getDate() >= expense.dayOfMonth) {
         const transactionDate = setDate(today, expense.dayOfMonth)
         newTransactions.push({
-          id: crypto.randomUUID(),
+          id: generateId(),
           type: 'expense',
           description: `[RECORRENTE] ${expense.description}`,
           amount: expense.amount,
@@ -104,7 +117,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addClient = (client: Omit<Client, 'id' | 'createdAt'>) => {
     const newClient: Client = {
       ...client,
-      id: crypto.randomUUID(),
+      id: generateId(),
       createdAt: new Date().toISOString(),
     }
     setData(prev => ({ ...prev, clients: [newClient, ...prev.clients] }))
@@ -127,7 +140,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
     const newTransaction: Transaction = {
       ...transaction,
-      id: crypto.randomUUID(),
+      id: generateId(),
     }
     setData(prev => ({ ...prev, transactions: [newTransaction, ...prev.transactions] }))
   }
@@ -149,7 +162,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addFiado = (fiado: Omit<Fiado, 'id'>) => {
     const newFiado: Fiado = {
       ...fiado,
-      id: crypto.randomUUID(),
+      id: generateId(),
     }
     setData(prev => ({ ...prev, fiados: [newFiado, ...prev.fiados] }))
   }
@@ -171,7 +184,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addRecurringExpense = (expense: Omit<RecurringExpense, 'id' | 'active'>) => {
     const newExpense: RecurringExpense = {
       ...expense,
-      id: crypto.randomUUID(),
+      id: generateId(),
       active: true,
     }
     setData(prev => ({ ...prev, recurringExpenses: [newExpense, ...prev.recurringExpenses] }))
