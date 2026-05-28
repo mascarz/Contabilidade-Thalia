@@ -7,7 +7,7 @@ import { generateId } from '@/lib/utils'
 
 type AppContextType = {
   data: AppData
-  addClient: (client: Omit<Client, 'id' | 'createdAt'>) => void
+  addClient: (client: Omit<Client, 'id' | 'createdAt'>) => Client
   updateClient: (id: string, client: Partial<Client>) => void
   deleteClient: (id: string) => void
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void
