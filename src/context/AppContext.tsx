@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import { AppData, Client, Transaction, Fiado, MessageConfig, RecurringExpense } from '@/types'
+import { AppData, Client, Transaction, Fiado, MessageConfig, RecurringExpense, ApiConfig } from '@/types'
 import { isSameMonth, parseISO, setDate, format } from 'date-fns'
 
 type AppContextType = {
