@@ -22,7 +22,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { cn, formatCurrency } from '@/lib/utils'
 
 export default function FiadosPage() {
-  const { data, addFiado, updateFiado, deleteFiado } = useApp()
+  const { data, addFiado, updateFiado, deleteFiado, addClient, updateClient } = useApp()
   const [searchTerm, setSearchTerm] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   
@@ -48,9 +48,28 @@ export default function FiadosPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Check if client exists
+    let clientId = 'manual'
+    const existingClient = data.clients.find(c => c.phone === formData.clientPhone)
+    if (existingClient) {
+      clientId = existingClient.id
+      // Update name if provided
+      if (formData.clientName && existingClient.name !== formData.clientName) {
+        updateClient(existingClient.id, { name: formData.clientName })
+      }
+    } else {
+      // Create new client
+      const newClient = addClient({
+        name: formData.clientName,
+        phone: formData.clientPhone,
+      })
+      clientId = newClient.id
+    }
+    
     addFiado({
       ...formData,
-      clientId: 'manual', 
+      clientId: clientId, 
       amount: parseFloat(formData.amount),
       date: new Date(formData.date).toISOString(),
       status: 'pending'
@@ -115,8 +134,8 @@ export default function FiadosPage() {
             const isOverdue = fiado.status === 'pending' && differenceInDays(new Date(), new Date(fiado.date)) > 7
             return (
               <motion.div
-                layout
                 key={fiado.id}
+                layout
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
@@ -151,7 +170,7 @@ export default function FiadosPage() {
 
                 <div className="bg-gray-50/80 p-4 rounded-2xl flex items-center justify-between border border-gray-100/50">
                   <div className="space-y-1">
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{fiado.service}</p>
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">{fiado.service}</p>
                     <p className="text-[10px] font-bold text-muted-foreground/60">{format(new Date(fiado.date), "dd/MM/yyyy")}</p>
                   </div>
                   <div className="text-right">
@@ -221,26 +240,26 @@ export default function FiadosPage() {
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Nome da Cliente</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Nome do Cliente</label>
                   <input 
                     required
                     type="text"
                     value={formData.clientName}
                     onChange={(e) => setFormData({...formData, clientName: e.target.value})}
-                    placeholder="Ex: Maria Silva"
-                    className="w-full px-5 py-4 bg-gray-50 border border-border rounded-2xl focus:ring-2 focus:ring-primary/20 outline-none font-bold text-sm"
+                    placeholder="Nome completo"
+                    className="w-full px-5 py-4 bg-gray-50 border border-border rounded-2xl focus:ring-2 focus:ring-amber-200 outline-none font-bold text-sm"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Telefone</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">WhatsApp / Telefone</label>
                   <input 
                     required
                     type="tel"
                     value={formData.clientPhone}
                     onChange={(e) => setFormData({...formData, clientPhone: e.target.value})}
-                    placeholder="Ex: 11999999999"
-                    className="w-full px-5 py-4 bg-gray-50 border border-border rounded-2xl focus:ring-2 focus:ring-primary/20 outline-none font-bold text-sm"
+                    placeholder="(11) 99999-9999"
+                    className="w-full px-5 py-4 bg-gray-50 border border-border rounded-2xl focus:ring-2 focus:ring-amber-200 outline-none font-bold text-sm"
                   />
                 </div>
 
@@ -251,8 +270,8 @@ export default function FiadosPage() {
                     type="text"
                     value={formData.service}
                     onChange={(e) => setFormData({...formData, service: e.target.value})}
-                    placeholder="Ex: Escova e Corte"
-                    className="w-full px-5 py-4 bg-gray-50 border border-border rounded-2xl focus:ring-2 focus:ring-primary/20 outline-none font-bold text-sm"
+                    placeholder="Ex: Sobrancelha"
+                    className="w-full px-5 py-4 bg-gray-50 border border-border rounded-2xl focus:ring-2 focus:ring-amber-200 outline-none font-bold text-sm"
                   />
                 </div>
 
@@ -266,7 +285,7 @@ export default function FiadosPage() {
                       value={formData.amount}
                       onChange={(e) => setFormData({...formData, amount: e.target.value})}
                       placeholder="0,00"
-                      className="w-full px-5 py-4 bg-gray-50 border border-border rounded-2xl focus:ring-2 focus:ring-primary/20 outline-none font-bold text-sm"
+                      className="w-full px-5 py-4 bg-gray-50 border border-border rounded-2xl focus:ring-2 focus:ring-amber-200 outline-none font-bold text-sm"
                     />
                   </div>
                   <div className="space-y-2">
@@ -276,7 +295,7 @@ export default function FiadosPage() {
                       type="date"
                       value={formData.date}
                       onChange={(e) => setFormData({...formData, date: e.target.value})}
-                      className="w-full px-5 py-4 bg-gray-50 border border-border rounded-2xl focus:ring-2 focus:ring-primary/20 outline-none font-bold text-sm"
+                      className="w-full px-5 py-4 bg-gray-50 border border-border rounded-2xl focus:ring-2 focus:ring-amber-200 outline-none font-bold text-sm"
                     />
                   </div>
                 </div>
@@ -286,7 +305,7 @@ export default function FiadosPage() {
                     type="submit"
                     className="w-full bg-amber-500 text-white py-5 rounded-[1.5rem] font-black text-sm uppercase tracking-widest shadow-lg shadow-amber-500/30 active:scale-95 transition-all"
                   >
-                    Lançar Fiado
+                    Adicionar Fiado
                   </button>
                 </div>
               </form>

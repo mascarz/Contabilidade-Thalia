@@ -11,7 +11,8 @@ import {
   MessageSquare, 
   LogOut,
   Menu,
-  X
+  X,
+  Calendar
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
@@ -22,6 +23,7 @@ import { Logo } from '@/components/ui/Logo'
 const navItems = [
   { label: 'Início', href: '/', icon: LayoutDashboard },
   { label: 'Clientes', href: '/clientes', icon: Users },
+  { label: 'Agendamentos', href: '/agendamentos', icon: Calendar },
   { label: 'Financeiro', href: '/financeiro', icon: Wallet },
   { label: 'Fiados', href: '/fiados', icon: Clock },
   { label: 'Mensagens', href: '/mensagens', icon: MessageSquare },

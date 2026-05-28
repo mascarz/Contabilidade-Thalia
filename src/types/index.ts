@@ -3,9 +3,16 @@ export type Client = {
   name: string
   phone: string
   createdAt: string
-  lastService?: string
-  lastValue?: number
   observations?: string
+}
+
+export type Appointment = {
+  id: string
+  name: string
+  phone: string
+  service: string
+  amount: number
+  date: string
 }
 
 export type Transaction = {
@@ -28,7 +35,7 @@ export type RecurringExpense = {
   dayOfMonth: number
   category: string
   active: boolean
-  lastGenerated?: string // ISO date of last time it was generated
+  lastGenerated?: string
 }
 
 export type Fiado = {
@@ -60,5 +67,6 @@ export type AppData = {
   fiados: Fiado[]
   messageConfigs: MessageConfig[]
   recurringExpenses: RecurringExpense[]
+  appointments: Appointment[]
   apiConfig?: ApiConfig
 }

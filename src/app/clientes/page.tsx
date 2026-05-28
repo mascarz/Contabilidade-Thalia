@@ -10,8 +10,6 @@ import {
   Edit2, 
   Trash2, 
   X,
-  Calendar,
-  DollarSign,
   User,
   History,
   TrendingUp,
@@ -32,12 +30,9 @@ export default function ClientsPage() {
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   
-  // Form state
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
-    lastService: '',
-    lastValue: '',
     observations: ''
   })
 
@@ -57,8 +52,6 @@ export default function ClientsPage() {
       setFormData({
         name: client.name,
         phone: client.phone,
-        lastService: client.lastService || '',
-        lastValue: client.lastValue?.toString() || '',
         observations: client.observations || ''
       })
     } else {
@@ -66,8 +59,6 @@ export default function ClientsPage() {
       setFormData({
         name: '',
         phone: '',
-        lastService: '',
-        lastValue: '',
         observations: ''
       })
     }
@@ -76,15 +67,10 @@ export default function ClientsPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const clientData = {
-      ...formData,
-      lastValue: formData.lastValue ? parseFloat(formData.lastValue) : 0
-    }
-
     if (editingClient) {
-      updateClient(editingClient.id, clientData)
+      updateClient(editingClient.id, formData)
     } else {
-      addClient(clientData)
+      addClient(formData)
     }
     setIsModalOpen(false)
   }
@@ -168,16 +154,11 @@ export default function ClientsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {client.observations && (
                 <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100">
-                  <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">Último Serviço</p>
-                  <p className="text-xs font-bold text-gray-700 truncate">{client.lastService || 'Não registrado'}</p>
+                  <p className="text-xs font-medium text-gray-700 italic">"{client.observations}"</p>
                 </div>
-                <div className="bg-orange-50/50 p-3 rounded-2xl border border-orange-100/50">
-                  <p className="text-[10px] text-primary/80 uppercase font-black tracking-widest mb-1">Valor</p>
-                  <p className="text-xs font-black text-primary">{client.lastValue ? formatCurrency(client.lastValue) : 'R$ 0,00'}</p>
-                </div>
-              </div>
+              )}
 
               <div className="flex gap-2 pt-1">
                 <button 
@@ -206,7 +187,6 @@ export default function ClientsPage() {
         </div>
       )}
 
-      {/* Modal IOS Style */}
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-end justify-center">
@@ -263,30 +243,6 @@ export default function ClientsPage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Serviço</label>
-                    <input 
-                      type="text"
-                      value={formData.lastService}
-                      onChange={(e) => setFormData({...formData, lastService: e.target.value})}
-                      placeholder="Ex: Sobrancelha"
-                      className="w-full px-5 py-4 bg-gray-50 border border-border rounded-2xl focus:ring-2 focus:ring-primary/20 outline-none font-bold text-sm"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Valor (R$)</label>
-                    <input 
-                      type="number"
-                      step="0.01"
-                      value={formData.lastValue}
-                      onChange={(e) => setFormData({...formData, lastValue: e.target.value})}
-                      placeholder="0,00"
-                      className="w-full px-5 py-4 bg-gray-50 border border-border rounded-2xl focus:ring-2 focus:ring-primary/20 outline-none font-bold text-sm"
-                    />
-                  </div>
-                </div>
-
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Observações</label>
                   <textarea 
@@ -302,7 +258,7 @@ export default function ClientsPage() {
                     type="submit"
                     className="w-full bg-primary text-white py-5 rounded-[1.5rem] font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/30 active:scale-95 transition-all"
                   >
-                    {editingClient ? 'Salvar Alterações' : 'Cadastrar Cliente'}
+                    {editingClient ? 'Salvar Alterações' : 'Adicionar Cliente'}
                   </button>
                 </div>
               </form>
@@ -311,7 +267,6 @@ export default function ClientsPage() {
         )}
       </AnimatePresence>
 
-      {/* Modal IOS Style - Histórico do Cliente */}
       <AnimatePresence>
         {isHistoryModalOpen && selectedClient && (
           <div className="fixed inset-0 z-[100] flex items-end justify-center">
@@ -345,7 +300,6 @@ export default function ClientsPage() {
               </div>
 
               <div className="space-y-6">
-                {/* Resumo do Cliente */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-blue-50 p-4 rounded-3xl border border-blue-100">
                     <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Total Gasto</p>
@@ -361,14 +315,13 @@ export default function ClientsPage() {
                   </div>
                 </div>
 
-                {/* Lista de Atividades */}
                 <div className="space-y-4">
                   <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground ml-2">Atividades Recentes</h3>
                   
                   {[...clientHistory.transactions, ...clientHistory.fiados]
                     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                     .map((item, idx) => {
-                      const isTransaction = 'type' in item;
+                      const isTransaction = 'type' in item
                       return (
                         <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
                           <div className="flex items-center gap-3">
@@ -401,7 +354,7 @@ export default function ClientsPage() {
                             {isTransaction && item.type === 'income' ? '+' : '-'} {formatCurrency(item.amount)}
                           </p>
                         </div>
-                      );
+                      )
                     })
                   }
 

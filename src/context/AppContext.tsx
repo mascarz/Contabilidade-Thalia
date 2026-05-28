@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import { AppData, Client, Transaction, Fiado, MessageConfig, RecurringExpense, ApiConfig } from '@/types'
+import { AppData, Client, Transaction, Fiado, MessageConfig, RecurringExpense, ApiConfig, Appointment } from '@/types'
 import { isSameMonth, parseISO, setDate, format } from 'date-fns'
 import { generateId } from '@/lib/utils'
 
@@ -19,6 +19,9 @@ type AppContextType = {
   addRecurringExpense: (expense: Omit<RecurringExpense, 'id' | 'active'>) => void
   updateRecurringExpense: (id: string, updates: Partial<RecurringExpense>) => void
   deleteRecurringExpense: (id: string) => void
+  addAppointment: (appointment: Omit<Appointment, 'id'>) => void
+  updateAppointment: (id: string, appointment: Partial<Appointment>) => void
+  deleteAppointment: (id: string) => void
   updateMessageConfig: (days: number, config: Partial<MessageConfig>) => void
   updateApiConfig: (config: ApiConfig) => void
   sendMessageViaApi: (phone: string, message: string) => Promise<boolean>
@@ -33,6 +36,7 @@ const INITIAL_DATA: AppData = {
   transactions: [],
   fiados: [],
   recurringExpenses: [],
+  appointments: [],
   messageConfigs: [
     { days: 7, enabled: true, template: 'Olá [Nome], já faz 7 dias desde seu último atendimento no Studio Thalia Abdo 💕 Agende novamente seu horário.' },
     { days: 14, enabled: true, template: 'Olá [Nome], saudades! Já faz 14 dias que você não vem ao Studio Thalia Abdo. Vamos agendar um horário?' },
@@ -52,11 +56,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setData({
           ...INITIAL_DATA,
           ...parsed,
-          // Garante que campos de array existam mesmo em dados antigos
           clients: parsed.clients || [],
           transactions: parsed.transactions || [],
           fiados: parsed.fiados || [],
           recurringExpenses: parsed.recurringExpenses || [],
+          appointments: parsed.appointments || [],
           messageConfigs: parsed.messageConfigs || INITIAL_DATA.messageConfigs
         })
       } catch (e) {
@@ -115,12 +119,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [isLoading, checkRecurringExpenses])
 
   const addClient = (client: Omit<Client, 'id' | 'createdAt'>) => {
+    // Check if client already exists by phone
+    const existingClient = data.clients.find(c => c.phone === client.phone)
+    if (existingClient) {
+      // If exists, update name if provided
+      updateClient(existingClient.id, { name: client.name || existingClient.name })
+      return existingClient
+    }
+    
+    // If not, create new client
     const newClient: Client = {
       ...client,
       id: generateId(),
       createdAt: new Date().toISOString(),
     }
     setData(prev => ({ ...prev, clients: [newClient, ...prev.clients] }))
+    return newClient
   }
 
   const updateClient = (id: string, updates: Partial<Client>) => {
@@ -168,6 +182,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }
 
   const updateFiado = (id: string, updates: Partial<Fiado>) => {
+    // Check if we're marking as paid
+    const fiadoToUpdate = data.fiados.find(f => f.id === id)
+    if (fiadoToUpdate && updates.status === 'paid' && fiadoToUpdate.status !== 'paid') {
+      // Add transaction for the paid fiado
+      const transaction: Omit<Transaction, 'id'> = {
+        type: 'income',
+        description: `Pagamento de fiado: ${fiadoToUpdate.clientName} - ${fiadoToUpdate.service}`,
+        amount: fiadoToUpdate.amount,
+        date: new Date().toISOString(),
+        clientId: fiadoToUpdate.clientId,
+        paymentMethod: 'fiado_pago'
+      }
+      addTransaction(transaction)
+    }
+    
     setData(prev => ({
       ...prev,
       fiados: prev.fiados.map(f => f.id === id ? { ...f, ...updates } : f)
@@ -204,6 +233,54 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }))
   }
 
+  const addAppointment = (appointment: Omit<Appointment, 'id'>) => {
+    const newAppointment: Appointment = {
+      ...appointment,
+      id: generateId(),
+    }
+
+    // Add transaction for the appointment
+    const transaction: Omit<Transaction, 'id'> = {
+      type: 'income',
+      description: `Agendamento: ${appointment.name} - ${appointment.service}`,
+      amount: appointment.amount,
+      date: appointment.date,
+      clientId: '',
+      paymentMethod: 'agendamento'
+    }
+
+    // Check if client exists
+    const existingClient = data.clients.find(c => c.phone === appointment.phone)
+    if (existingClient) {
+      transaction.clientId = existingClient.id
+    } else {
+      // Create new client if not exists
+      const newClient = addClient({
+        name: appointment.name,
+        phone: appointment.phone,
+      })
+      transaction.clientId = newClient.id
+    }
+
+    addTransaction(transaction)
+    
+    setData(prev => ({ ...prev, appointments: [newAppointment, ...prev.appointments] }))
+  }
+
+  const updateAppointment = (id: string, updates: Partial<Appointment>) => {
+    setData(prev => ({
+      ...prev,
+      appointments: prev.appointments.map(a => a.id === id ? { ...a, ...updates } : a)
+    }))
+  }
+
+  const deleteAppointment = (id: string) => {
+    setData(prev => ({
+      ...prev,
+      appointments: prev.appointments.filter(a => a.id !== id)
+    }))
+  }
+
   const updateMessageConfig = (days: number, updates: Partial<MessageConfig>) => {
     setData(prev => ({
       ...prev,
@@ -222,7 +299,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     const cleanPhone = phone.replace(/\D/g, '')
-    // Exemplo de integração genérica (estilo Evolution API ou similar)
     try {
       const response = await fetch(`${data.apiConfig.baseUrl}/message/sendText`, {
         method: 'POST',
@@ -233,7 +309,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({
           number: `55${cleanPhone}`,
           text: message,
-          // Adicione outros campos conforme necessário pela API do usuário
         })
       })
       return response.ok
@@ -265,13 +340,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updateFiado,
       deleteFiado,
       addRecurringExpense,
-        updateRecurringExpense,
-        deleteRecurringExpense,
-        updateMessageConfig,
-        updateApiConfig,
-        sendMessageViaApi,
-        toggleReconciliation,
-        isLoading
+      updateRecurringExpense,
+      deleteRecurringExpense,
+      addAppointment,
+      updateAppointment,
+      deleteAppointment,
+      updateMessageConfig,
+      updateApiConfig,
+      sendMessageViaApi,
+      toggleReconciliation,
+      isLoading
     }}>
       {children}
     </AppContext.Provider>
