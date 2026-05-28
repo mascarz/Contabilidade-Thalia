@@ -92,30 +92,32 @@ export default function DashboardPage() {
   }, [data, period])
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header Mobile Otimizado */}
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-black text-gray-900">Olá, Thalia! 👋</h1>
-        <p className="text-sm text-muted-foreground font-medium">Veja como está o seu estúdio hoje.</p>
+        <h1 className="text-3xl font-black text-slate-900 tracking-tight font-display italic">
+          Studio <span className="text-primary not-italic">Thalia Abdo</span>
+        </h1>
+        <p className="text-sm text-slate-500 font-medium">Gestão inteligente para o seu espaço.</p>
       </div>
 
       {/* Seletor de Período Estilo Pílula */}
-      <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide no-scrollbar">
+      <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 no-scrollbar">
         {[
           { id: 'hoje', label: 'Hoje' },
           { id: '7dias', label: '7 Dias' },
           { id: '30dias', label: '30 Dias' },
-          { id: 'mensal', label: 'Este Mês' },
-          { id: 'anual', label: 'Este Ano' }
+          { id: 'mensal', label: 'Mês' },
+          { id: 'anual', label: 'Ano' }
         ].map((p) => (
           <button
             key={p.id}
             onClick={() => setPeriod(p.id as FilterPeriod)}
             className={cn(
-              "whitespace-nowrap px-5 py-2 rounded-full text-xs font-bold transition-all border",
+              "whitespace-nowrap px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border",
               period === p.id 
-                ? "bg-primary text-white border-primary shadow-md shadow-primary/20" 
-                : "bg-white text-muted-foreground border-border hover:bg-gray-50"
+                ? "bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-200" 
+                : "bg-white text-slate-400 border-slate-100 hover:bg-slate-50"
             )}
           >
             {p.label}
@@ -132,37 +134,45 @@ export default function DashboardPage() {
         fiados={filteredData.fiados}
       />
 
+      {/* Ações Rápidas Mobile - Design Empresa Grande */}
+      <div className="grid grid-cols-2 gap-4">
+        <button className="flex flex-col items-start justify-between gap-6 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm active:scale-95 transition-all group overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-orange-50 rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-110" />
+          <div className="p-3 bg-white shadow-md text-primary rounded-2xl relative z-10">
+            <Scissors size={20} strokeWidth={2.5} />
+          </div>
+          <div className="relative z-10">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Serviços</p>
+            <span className="text-sm font-black text-slate-800">Novo Registro</span>
+          </div>
+        </button>
+        <button className="flex flex-col items-start justify-between gap-6 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm active:scale-95 transition-all group overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-110" />
+          <div className="p-3 bg-white shadow-md text-blue-600 rounded-2xl relative z-10">
+            <Users size={20} strokeWidth={2.5} />
+          </div>
+          <div className="relative z-10">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Clientes</p>
+            <span className="text-sm font-black text-slate-800">Novo Cadastro</span>
+          </div>
+        </button>
+      </div>
+
       {/* Gráfico Otimizado */}
-      <div className="bg-white p-6 rounded-[2.5rem] border border-border shadow-sm">
+      <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-lg font-black tracking-tight text-gray-900">Fluxo de Caixa</h2>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Ganhos vs Gastos</p>
+            <h2 className="text-lg font-black tracking-tight text-slate-900 font-display">Fluxo de Caixa</h2>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Análise de Rendimento</p>
           </div>
-          <div className="flex items-center gap-1.5 bg-orange-50 px-3 py-1 rounded-full">
-            <div className="w-2 h-2 rounded-full bg-primary" />
-            <span className="text-[10px] font-black text-primary uppercase">Lucro</span>
+          <div className="flex items-center gap-1.5 bg-orange-50 px-4 py-1.5 rounded-full">
+            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+            <span className="text-[9px] font-black text-primary uppercase tracking-tighter">Ao Vivo</span>
           </div>
         </div>
         <div className="h-[280px] w-full">
           <FinancialChart data={filteredData.chartData} />
         </div>
-      </div>
-
-      {/* Ações Rápidas Mobile */}
-      <div className="grid grid-cols-2 gap-4 pb-4">
-        <button className="flex flex-col items-center justify-center gap-3 bg-white p-6 rounded-[2rem] border border-border shadow-sm active:scale-95 transition-transform">
-          <div className="p-3 bg-orange-100 text-primary rounded-2xl">
-            <Scissors size={24} />
-          </div>
-          <span className="text-xs font-black uppercase tracking-wider text-gray-700">Novo Serviço</span>
-        </button>
-        <button className="flex flex-col items-center justify-center gap-3 bg-white p-6 rounded-[2rem] border border-border shadow-sm active:scale-95 transition-transform">
-          <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl">
-            <Users size={24} />
-          </div>
-          <span className="text-xs font-black uppercase tracking-wider text-gray-700">Novo Cliente</span>
-        </button>
       </div>
     </div>
   )

@@ -1,11 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { AppProvider } from "@/context/AppContext";
 import { MainLayout } from "@/components/layout/MainLayout";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const plusJakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-plus-jakarta" });
 
 export const metadata: Metadata = {
   title: "Studio Thalia Abdo | Contabilidade",
@@ -31,8 +32,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR">
-      <body className={`${inter.className} bg-background text-foreground antialiased`}>
+    <html lang="pt-BR" className={`${inter.variable} ${plusJakarta.variable}`}>
+      <body className="font-sans bg-[#FDFDFD] text-slate-900 antialiased tracking-tight">
         <AuthProvider>
           <AppProvider>
             <MainLayout>

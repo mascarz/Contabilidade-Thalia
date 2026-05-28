@@ -28,6 +28,7 @@ interface ClientToMessage extends Client {
 export default function MessagesPage() {
   const { data, updateMessageConfig } = useApp()
   const [activeTab, setActiveTab] = useState<'pendentes' | 'config'>('pendentes')
+  const [isSendingAll, setIsSendingAll] = useState(false)
 
   const clientsToMessage = useMemo(() => {
     const now = new Date()
@@ -56,12 +57,61 @@ export default function MessagesPage() {
     window.open(`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank')
   }
 
+  const sendAllMessages = async () => {
+    if (clientsToMessage.length === 0) return
+    setIsSendingAll(true)
+    
+    // Simulação de processamento para UX
+    for (const client of clientsToMessage) {
+      const config = data.messageConfigs.find(c => c.days === client.type)
+      if (config) {
+        const message = config.template.replace('[Nome]', client.name)
+        const cleanPhone = client.phone.replace(/\D/g, '')
+        // Em um sistema real com API oficial, aqui dispararíamos o POST
+        // Como é integração via Link, abrimos cada um em sequência ou via serviço
+        window.open(`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank')
+        
+        // Pequeno delay para não travar o navegador
+        await new Promise(resolve => setTimeout(resolve, 800))
+      }
+    }
+    setIsSendingAll(false)
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-black text-gray-900">Fidelização</h1>
-        <p className="text-sm text-muted-foreground font-medium">Encante e traga suas clientes de volta.</p>
+        <h1 className="text-3xl font-black text-gray-900 tracking-tight font-display">Fidelização</h1>
+        <p className="text-sm text-slate-500 font-medium">Encante e traga suas clientes de volta.</p>
       </div>
+
+      {/* Botão Enviar Para Todas */}
+      {activeTab === 'pendentes' && clientsToMessage.length > 0 && (
+        <motion.button
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          onClick={sendAllMessages}
+          disabled={isSendingAll}
+          className={cn(
+            "w-full py-5 rounded-3xl font-black text-xs uppercase tracking-[0.15em] shadow-xl transition-all flex items-center justify-center gap-3",
+            isSendingAll 
+              ? "bg-slate-100 text-slate-400 cursor-not-allowed" 
+              : "bg-gradient-to-r from-primary to-orange-600 text-white shadow-orange-200 hover:shadow-orange-300 active:scale-[0.98]"
+          )}
+        >
+          {isSendingAll ? (
+            <>
+              <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+              Processando Envios...
+            </>
+          ) : (
+            <>
+              <Sparkles size={18} strokeWidth={3} />
+              Enviar para Todas ({clientsToMessage.length})
+            </>
+          )}
+        </motion.button>
+      )}
 
       {/* Tabs Estilo App */}
       <div className="flex bg-white p-1 rounded-2xl border border-border">
